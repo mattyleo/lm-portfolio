@@ -1,0 +1,183 @@
+@import "tailwindcss";
+/*
+:root {
+  color-scheme: dark;
+}
+
+html, body {
+  height: 100%;
+}
+
+body {
+  background:
+    radial-gradient(1100px 520px at 18% 8%, rgba(56,189,248,.18), transparent 60%),
+    radial-gradient(900px 520px at 82% 18%, rgba(14,165,233,.12), transparent 58%),
+    radial-gradient(700px 420px at 50% 85%, rgba(2,132,199,.10), transparent 62%),
+    linear-gradient(to bottom, #05060a, #070813);
+  color: #e5e7eb;
+}
+
+::selection {
+  background: rgba(56,189,248,.28);
+}
+
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+*/
+
+/* =========================
+   ML TECH – GLOBAL THEME
+   ========================= */
+:root {
+  color-scheme: dark;
+
+  --bg-0: #03050b;
+  --bg-1: #071427;
+
+  --text-main: #e5e7eb;
+
+  /* Accents (RGB) */
+  --a1: 56, 189, 248;   /* sky */
+  --a2: 0, 229, 255;    /* cyan glow */
+  --a3: 14, 165, 233;   /* azure */
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  color: var(--text-main);
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial, sans-serif;
+
+  background:
+    radial-gradient(1200px 600px at 15% 10%, rgba(var(--a1), .28), transparent 60%),
+    radial-gradient(1000px 560px at 85% 20%, rgba(var(--a3), .22), transparent 60%),
+    radial-gradient(900px 520px at 50% 85%, rgba(var(--a2), .18), transparent 62%),
+    linear-gradient(to bottom, var(--bg-0), var(--bg-1));
+}
+
+::selection {
+  background: rgba(var(--a2), .32);
+}
+
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* =========================
+   NEURAL NETWORK – WIDE + BRIGHT
+   ========================= */
+
+/* SVG container */
+.ml-neural {
+  mix-blend-mode: screen;
+  opacity: 0.30; /* << PIÙ VISIBILE */
+  filter: saturate(1.35) contrast(1.25);
+
+  -webkit-mask-image: radial-gradient(
+    120% 95% at 50% 45%,
+    #000 0%,
+    rgba(0,0,0,.75) 55%,
+    transparent 85%
+  );
+  mask-image: radial-gradient(
+    120% 95% at 50% 45%,
+    #000 0%,
+    rgba(0,0,0,.75) 55%,
+    transparent 85%
+  );
+}
+
+/* Lines */
+.ml-neural-lines {
+  stroke: rgba(var(--a1), .85);
+  stroke-width: 1.35;
+  filter:
+    drop-shadow(0 0 10px rgba(var(--a2), .35))
+    drop-shadow(0 0 24px rgba(var(--a2), .18));
+}
+
+/* Nodes */
+.ml-neural-nodes {
+  fill: rgb(var(--a2));
+  filter:
+    drop-shadow(0 0 14px rgba(var(--a2), .55))
+    drop-shadow(0 0 28px rgba(var(--a2), .35));
+}
+
+/* Pulse animation */
+@keyframes ml-node-pulse {
+  0%, 100% { opacity: .55; r: 3.0; }
+  50%      { opacity: 1;   r: 4.6; }
+}
+
+.ml-node {
+  animation: ml-node-pulse 3.6s ease-in-out infinite;
+  transform-origin: center;
+}
+
+/* Staggered delays */
+.ml-d0 { animation-delay: 0ms; }
+.ml-d1 { animation-delay: 180ms; }
+.ml-d2 { animation-delay: 360ms; }
+.ml-d3 { animation-delay: 540ms; }
+.ml-d4 { animation-delay: 720ms; }
+.ml-d5 { animation-delay: 900ms; }
+.ml-d6 { animation-delay: 1080ms; }
+.ml-d7 { animation-delay: 1260ms; }
+.ml-d8 { animation-delay: 1440ms; }
+.ml-d9 { animation-delay: 1620ms; }
+.ml-d10{ animation-delay: 1800ms; }
+.ml-d11{ animation-delay: 1980ms; }
+
+/* Reduce motion */
+@media (prefers-reduced-motion: reduce) {
+  .ml-node { animation: none; }
+}
+
+/* Title glow */
+.ml-glow {
+  text-shadow:
+    0 0 22px rgba(var(--a2), .25),
+    0 0 52px rgba(var(--a2), .18);
+}
+
+/* Footer neural: signature soft */
+.ml-neural-footer {
+  mix-blend-mode: screen;
+  opacity: 0.18;
+  filter: saturate(1.25) contrast(1.15);
+
+  -webkit-mask-image: radial-gradient(
+    140% 120% at 50% 110%,
+    #000 0%,
+    rgba(0,0,0,.75) 55%,
+    transparent 88%
+  );
+  mask-image: radial-gradient(
+    140% 120% at 50% 110%,
+    #000 0%,
+    rgba(0,0,0,.75) 55%,
+    transparent 88%
+  );
+}
+
+.ml-neural-lines-footer {
+  stroke: rgba(var(--a1), .65);
+  stroke-width: 1.2;
+  filter:
+    drop-shadow(0 0 8px rgba(var(--a2), .22))
+    drop-shadow(0 0 18px rgba(var(--a2), .12));
+}
+
+.ml-neural-nodes-footer {
+  fill: rgb(var(--a2));
+  filter:
+    drop-shadow(0 0 10px rgba(var(--a2), .35))
+    drop-shadow(0 0 20px rgba(var(--a2), .18));
+}
+
