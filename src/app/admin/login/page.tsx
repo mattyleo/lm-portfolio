@@ -2,19 +2,34 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Shield, KeyRound, ArrowRight } from "lucide-react";
+import { Shield, KeyRound, ArrowRight, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { createClient } from "@/utils/supabase/client";
 
 export default function AdminLogin() {
   const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const supabase = createClient();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Aggiungere logica di convalida JWT o Supabase Admin
-    console.log("Admin Login tentato");
-    // Mock di redirect alla dashboard
-    router.push("/admin/dashboard");
+    setIsLoading(true);
+    setError(null);
+
+    const { error: authError } = await supabase.auth.signInWithPassword({
+      email: "mattia@leonimattia.it",
+      password: password,
+    });
+
+    if (authError) {
+      setError("Passkey errata.");
+      setIsLoading(false);
+    } else {
+      router.push("/admin/dashboard");
+      router.refresh();
+    }
   };
 
   return (
@@ -38,6 +53,12 @@ export default function AdminLogin() {
           </p>
         </div>
 
+        {error && (
+          <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm p-3 rounded-lg text-center mb-6">
+            {error}
+          </div>
+        )}
+
         <form onSubmit={handleLogin} className="space-y-6">
           <div className="space-y-1">
             <div className="relative">
@@ -55,10 +76,17 @@ export default function AdminLogin() {
 
           <button
             type="submit"
-            className="w-full bg-white text-black hover:bg-neutral-200 font-semibold py-3.5 rounded-xl transition-all active:scale-[0.98] shadow-lg flex items-center justify-center gap-2 group"
+            disabled={isLoading}
+            className="w-full bg-white text-black hover:bg-neutral-200 font-semibold py-3.5 rounded-xl transition-all active:scale-[0.98] shadow-lg flex items-center justify-center gap-2 group disabled:opacity-75 disabled:pointer-events-none"
           >
-            Verifica Accesso
-            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            {isLoading ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              <>
+                Verifica Accesso
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </>
+            )}
           </button>
         </form>
       </motion.div>

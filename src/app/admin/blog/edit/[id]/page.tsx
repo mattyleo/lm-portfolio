@@ -1,19 +1,22 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, use } from "react";
 import { motion } from "framer-motion";
 import { ImageIcon, Save, Send, ArrowLeft, Bold, Italic, ListOrdered, ImagePlus, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
 
-export default function NewBlogPost() {
+export default function EditBlogPost({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
+
   const [title, setTitle] = useState("");
   const [excerpt, setExcerpt] = useState("");
   const [content, setContent] = useState("");
   const [category, setCategory] = useState("Programmazione");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   
+  const [isInitializing, setIsInitializing] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -24,6 +27,33 @@ export default function NewBlogPost() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const supabase = createClient();
   const router = useRouter();
+
+  // RECUPERO DATI INIZIALI
+  useEffect(() => {
+    async function fetchPost() {
+      const { data, error } = await supabase.from('posts').select('*').eq('id', id).single();
+      if (error || !data) {
+        setError("Errore durante il caricamento dell'articolo.");
+        setIsInitializing(false);
+        return;
+      }
+      
+      setTitle(data.title || "");
+      setExcerpt(data.excerpt || "");
+      setContent(data.content || "");
+      if (data.category && predefinedCategories.includes(data.category)) {
+          setCategory(data.category);
+      } else if (data.category) {
+          // Fallback se avevamo categorie vecchie non previste nei pulsanti
+          setCategory(data.category);
+      }
+      setImageUrl(data.image_url || null);
+      
+      setIsInitializing(false);
+    }
+    
+    fetchPost();
+  }, [id, supabase]);
 
   // INSERIMENTO MARKDOWN
   const insertFormatting = (before: string, after: string = "", block: boolean = false) => {
@@ -38,7 +68,6 @@ export default function NewBlogPost() {
     let newCursorPos = 0;
 
     if (block) {
-      // Inserisce elementi come "1. ", all'inizio della riga
       const textBefore = content.substring(0, start);
       const textAfter = content.substring(end);
       const hasNewlineBefore = start === 0 || textBefore.endsWith('\n');
@@ -47,7 +76,6 @@ export default function NewBlogPost() {
       newText = textBefore + prefix + selectedText + textAfter;
       newCursorPos = start + prefix.length + selectedText.length;
     } else {
-      // Avvolge il testo, es. **testo selected**
       newText = content.substring(0, start) + before + selectedText + after + content.substring(end);
       newCursorPos = start + before.length + selectedText.length;
     }
@@ -87,7 +115,7 @@ export default function NewBlogPost() {
     setIsUploading(false);
   };
 
-  // PUBBLICAZIONE POST
+  // AGGIORNAMENTO POST
   const handlePublish = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title) {
@@ -98,26 +126,30 @@ export default function NewBlogPost() {
     setIsPublishing(true);
     setError(null);
 
-    const { error: insertError } = await supabase.from('posts').insert([
-      {
+    const { error: updateError } = await supabase.from('posts').update({
         title,
         excerpt,
         content,
         category,
         image_url: imageUrl,
-        is_published: true
-      }
-    ]);
+    }).eq("id", id);
 
-    if (insertError) {
-      setError(insertError.message);
+    if (updateError) {
+      setError(updateError.message);
       setIsPublishing(false);
     } else {
-      // TODO: Se l'utente ha spuntato "Invio automatico via mail", invocare l'api di Resend.
       router.push("/admin/dashboard");
       router.refresh();
     }
   };
+
+  if (isInitializing) {
+     return (
+       <div className="min-h-screen bg-neutral-950 flex items-center justify-center">
+         <Loader2 className="w-8 h-8 animate-spin text-purple-500" />
+       </div>
+     );
+  }
 
   return (
     <div className="min-h-screen bg-neutral-950 text-white p-6 md:p-12 font-sans">
@@ -130,8 +162,8 @@ export default function NewBlogPost() {
               <ArrowLeft className="w-5 h-5" />
             </Link>
             <div>
-              <h1 className="text-2xl font-bold tracking-tight">Nuovo Articolo</h1>
-              <p className="text-sm text-neutral-400 mt-1">Crea e pubblica un nuovo post sul blog.</p>
+              <h1 className="text-2xl font-bold tracking-tight">Modifica Articolo</h1>
+              <p className="text-sm text-neutral-400 mt-1">Aggiorna i dettagli dell'articolo selezionato.</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -142,10 +174,10 @@ export default function NewBlogPost() {
             <button 
               onClick={handlePublish} 
               disabled={isPublishing}
-              className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-5 py-2.5 rounded-full font-medium hover:from-purple-500 hover:to-indigo-500 transition-colors shadow-lg shadow-purple-500/20 active:scale-95 disabled:opacity-75"
+              className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white px-5 py-2.5 rounded-full font-medium hover:from-emerald-500 hover:to-teal-500 transition-colors shadow-lg shadow-emerald-500/20 active:scale-95 disabled:opacity-75"
             >
-              {isPublishing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-              Pubblica
+              {isPublishing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+              Salva Modifiche
             </button>
           </div>
         </header>
@@ -246,18 +278,18 @@ export default function NewBlogPost() {
               />
               <div 
                 onClick={() => fileInputRef.current?.click()}
-                className="border-2 border-dashed border-white/10 hover:border-purple-500/50 rounded-2xl flex flex-col items-center justify-center gap-3 text-center transition-colors cursor-pointer group overflow-hidden relative"
+                className="border-2 border-dashed border-white/10 hover:border-emerald-500/50 rounded-2xl flex flex-col items-center justify-center gap-3 text-center transition-colors cursor-pointer group overflow-hidden relative"
                 style={{ height: '200px' }}
                 title="Clicca per caricare dal tuo PC"
               >
                 {isUploading ? (
-                   <Loader2 className="w-8 h-8 text-purple-400 animate-spin" />
+                   <Loader2 className="w-8 h-8 text-emerald-400 animate-spin" />
                 ) : imageUrl ? (
                    <img src={imageUrl} alt="Copertina" className="w-full h-full object-cover" />
                 ) : (
                   <>
-                    <div className="w-12 h-12 bg-white/5 rounded-full flex items-center justify-center group-hover:bg-purple-500/10 transition-colors">
-                      <ImageIcon className="w-6 h-6 text-neutral-400 group-hover:text-purple-400" />
+                    <div className="w-12 h-12 bg-white/5 rounded-full flex items-center justify-center group-hover:bg-emerald-500/10 transition-colors">
+                      <ImageIcon className="w-6 h-6 text-neutral-400 group-hover:text-emerald-400" />
                     </div>
                     <p className="text-sm text-neutral-400 px-4">Clicca per caricare<br/><span className="text-xs">(Diretta su Supabase)</span></p>
                   </>
@@ -268,24 +300,6 @@ export default function NewBlogPost() {
                   Rimuovi Immagine
                 </button>
               )}
-            </div>
-
-            {/* Newsletter Trigger */}
-            <div className="bg-gradient-to-br from-indigo-900/20 to-purple-900/20 border border-indigo-500/20 rounded-3xl p-6 relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/20 blur-3xl pointer-events-none" />
-              <h3 className="font-semibold mb-2 text-sm uppercase tracking-wider text-indigo-300 flex items-center gap-2">
-                <Send className="w-4 h-4" /> Invio Automatico
-              </h3>
-              <p className="text-sm text-neutral-400 mb-4">
-                L'agente AI invierà una mail con il riassunto di questo post ai tuoi clienti registrati al momento della pubblicazione.
-              </p>
-              <label className="flex items-center gap-3 cursor-pointer">
-                <div className="relative">
-                  <input type="checkbox" className="sr-only peer" defaultChecked />
-                  <div className="w-10 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-500"></div>
-                </div>
-                <span className="text-sm font-medium text-white">Notifica Clienti</span>
-              </label>
             </div>
           </div>
           
