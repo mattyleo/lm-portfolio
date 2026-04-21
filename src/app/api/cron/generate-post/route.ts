@@ -75,7 +75,7 @@ export async function GET(request: Request) {
     const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
     
     // Immagine placeholder da Picsum
-    const fallbackImage = \`https://picsum.photos/seed/\${Math.random().toString().slice(2, 8)}/800/400\`;
+    const fallbackImage = `https://picsum.photos/seed/${Math.random().toString().slice(2, 8)}/800/400`;
 
     // 4. Salvataggio Database
     const { data: insertedPost, error: dbError } = await supabaseAdmin.from('posts').insert([
