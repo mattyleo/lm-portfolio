@@ -5,34 +5,28 @@ import { createClient } from '@supabase/supabase-js';
 export const maxDuration = 60; 
 export const dynamic = 'force-dynamic';
 
-const CATEGORIES = ["Ingegneria", "Programmazione", "AI", "Networking", "Tech", "Database", "Sicurezza", "Finanza"];
-
-export async function GET(request: Request) {
+export async function POST(request: Request) {
   try {
-    const { searchParams } = new URL(request.url);
-    const key = searchParams.get('key');
-    
-    // Mini-Livello di sicurezza: se in Vercel imposti CRON_SECRET, la richiesta dovrà avere ?key=... passata nell'URL
-    if (process.env.CRON_SECRET && key !== process.env.CRON_SECRET) {
-      return NextResponse.json({ error: 'Non Autorizzato' }, { status: 401 });
-    }
+    const body = await request.json();
+    const { prompt, category } = body;
 
     const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
     if (!OPENAI_API_KEY) {
       return NextResponse.json({ error: 'OPENAI_API_KEY mancante nel file .env.local o Vercel' }, { status: 500 });
     }
 
-    // 1. Scelta Categoria Random
-    const randomCategory = CATEGORIES[Math.floor(Math.random() * CATEGORIES.length)];
+    const aiPrompt = prompt || "un argomento interessante in ambito tech/programmazione";
+    const selectedCategory = category || "Tech";
 
     // 2. Chiamata ad OpenAI (ChatGPT)
     const systemPrompt = `
       Sei un espertissimo blogger IT e software engineer di nome Mattia Leoni.
-      Scrivi un articolo accattivante e tecnico, ma facile da leggere, sulla categoria: ${randomCategory}.
+      Scrivi un articolo accattivante e tecnico, ma facile da leggere, basato sul seguente spunto: "${aiPrompt}".
+      La categoria del post è: ${selectedCategory}.
       Usa la formattazione Markdown (usa grassetti **testo**, corsivi, e liste tipo 1. o A.).
       L'articolo deve essere di circa 3-4 paragrafi pieni e succosi.
       Non inserire saluti iniziali o finali.
-      Ritorna RIGOROSAMENTE una stringa JSON (non un code block con apici, solo Puro JSON testuale valido) con questa esatta struttura:
+      Ritorna RIGOROSAMENTE una stringa JSON con questa esatta struttura:
       {
         "title": "Titolo corto, virale e ad impatto",
         "excerpt": "Un riassunto molto in stile hook (una frase succosa e curiosa)",
@@ -47,7 +41,7 @@ export async function GET(request: Request) {
         'Authorization': `Bearer ${OPENAI_API_KEY}`
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini', // Modello super veloce ed economico
+        model: 'gpt-4o-mini',
         messages: [{ role: 'system', content: systemPrompt }],
         temperature: 0.7,
         response_format: { type: "json_object" }
@@ -63,19 +57,17 @@ export async function GET(request: Request) {
     const { title, excerpt, content } = JSON.parse(aiData.choices[0].message.content);
 
     // 3. Connessione a Supabase con diritti Amministrativi (Service Role Key)
-    // ATTENZIONE: l'API anonima pubblica non può scrivere a causa delle tue RLS (Row Level Security).
-    // Usiamo il SERVICE_ROLE_KEY per saltare i permessi in sicurezza dietro al server.
     const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!; // Va aggiunta!
+    const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
     if (!SUPABASE_SERVICE_KEY) {
-      return NextResponse.json({ error: 'SUPABASE_SERVICE_ROLE_KEY mancante nel file .env.local o Vercel. Recuperala dalle impostazioni API di Supabase!' }, { status: 500 });
+      return NextResponse.json({ error: 'SUPABASE_SERVICE_ROLE_KEY mancante nel file .env.local o Vercel.' }, { status: 500 });
     }
 
     const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
     
-    // Immagine placeholder da Picsum
-    const fallbackImage = \`https://picsum.photos/seed/\${Math.random().toString().slice(2, 8)}/800/400\`;
+    // Immagine placeholder da Picsum (molto più affidabile di Unsplash Source)
+    const fallbackImage = `https://picsum.photos/seed/${Math.random().toString().slice(2, 8)}/800/400`;
 
     // 4. Salvataggio Database
     const { data: insertedPost, error: dbError } = await supabaseAdmin.from('posts').insert([
@@ -83,9 +75,9 @@ export async function GET(request: Request) {
         title,
         excerpt,
         content,
-        category: randomCategory,
+        category: selectedCategory,
         image_url: fallbackImage,
-        is_published: true, // Pubblica istantaneamente sul sito!
+        is_published: true, // Pubblica istantaneamente sul sito
       }
     ]).select();
 

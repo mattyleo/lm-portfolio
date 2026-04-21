@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Users, FileText, Ticket, TrendingUp, Plus, ArrowRight, LogOut, Loader2 } from "lucide-react";
+import { Users, FileText, Ticket, TrendingUp, Plus, ArrowRight, LogOut, Loader2, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
@@ -11,6 +11,10 @@ export default function AdminDashboard() {
   const [tickets, setTickets] = useState<any[]>([]);
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [aiCategory, setAiCategory] = useState("Tech");
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [aiMessage, setAiMessage] = useState<{type: 'success' | 'error', text: string} | null>(null);
   const supabase = createClient();
   const router = useRouter();
 
@@ -33,6 +37,37 @@ export default function AdminDashboard() {
     await supabase.auth.signOut();
     router.push("/admin/login");
     router.refresh();
+  };
+
+  const handleGeneratePost = async () => {
+    if (!aiPrompt) {
+      setAiMessage({ type: 'error', text: 'Inserisci uno spunto per il post' });
+      return;
+    }
+    
+    setIsGenerating(true);
+    setAiMessage(null);
+    try {
+      const res = await fetch('/api/admin/generate-post', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: aiPrompt, category: aiCategory })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setAiMessage({ type: 'success', text: data.message || 'Post generato!' });
+        setAiPrompt("");
+        // Ricarica i post
+        const postsResponse = await supabase.from('posts').select('*').order('published_at', { ascending: false }).limit(5);
+        if (postsResponse.data) setPosts(postsResponse.data);
+      } else {
+        setAiMessage({ type: 'error', text: data.error || 'Errore durante la generazione' });
+      }
+    } catch (err: any) {
+      setAiMessage({ type: 'error', text: err.message });
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const openTicketsCount = tickets.filter(t => t.status === 'nuovo' || t.status === 'in corso').length;
@@ -152,6 +187,55 @@ export default function AdminDashboard() {
           </div>
 
         </div>
+
+        {/* AI Agent Section */}
+        <div className="bg-gradient-to-br from-indigo-900/20 to-purple-900/20 border border-indigo-500/20 rounded-3xl p-6 relative overflow-hidden mt-8">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 blur-3xl pointer-events-none" />
+          <div className="relative z-10">
+            <h2 className="text-xl font-bold flex items-center gap-2 text-white mb-4">
+              <Sparkles className="w-6 h-6 text-indigo-400" /> Agente AI Scrittore
+            </h2>
+            <p className="text-sm text-neutral-400 mb-6">
+              Fornisci uno spunto (es. "La rivoluzione di Next.js 15") e l'intelligenza artificiale scriverà un articolo completo, formattato in Markdown, aggiungerà l'immagine e lo pubblicherà automaticamente.
+            </p>
+
+            <div className="flex flex-col md:flex-row gap-4">
+              <input
+                type="text"
+                placeholder="Spunto o argomento del post..."
+                value={aiPrompt}
+                onChange={(e) => setAiPrompt(e.target.value)}
+                className="flex-1 bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-neutral-500 focus:outline-none focus:border-indigo-500/50 transition-colors"
+                disabled={isGenerating}
+              />
+              <select
+                value={aiCategory}
+                onChange={(e) => setAiCategory(e.target.value)}
+                className="bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500/50 transition-colors appearance-none md:w-48"
+                disabled={isGenerating}
+              >
+                {["Ingegneria", "Programmazione", "AI", "Networking", "Tech", "Database", "Sicurezza", "Finanza"].map(cat => (
+                  <option key={cat} value={cat} className="bg-neutral-900">{cat}</option>
+                ))}
+              </select>
+              <button
+                onClick={handleGeneratePost}
+                disabled={isGenerating}
+                className="flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-3 rounded-xl font-medium hover:from-indigo-500 hover:to-purple-500 transition-colors shadow-lg shadow-indigo-500/20 active:scale-95 disabled:opacity-50 whitespace-nowrap"
+              >
+                {isGenerating ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
+                Genera Articolo
+              </button>
+            </div>
+
+            {aiMessage && (
+              <div className={`mt-4 p-4 rounded-xl text-sm ${aiMessage.type === 'success' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'}`}>
+                {aiMessage.text}
+              </div>
+            )}
+          </div>
+        </div>
+
       </div>
     </div>
   );
