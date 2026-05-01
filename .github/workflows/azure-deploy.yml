@@ -34,6 +34,12 @@ jobs:
           cp -r .next/static/. deploy/.next/static/
           cp -r public deploy/public
           echo '{"scripts": {"start": "node server.js"}}' > deploy/package.json
+          cat <<EOF > deploy/.env
+          NEXT_PUBLIC_SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+          EOF
 
       - name: Deploy to Azure
         uses: azure/webapps-deploy@v3
