@@ -27,20 +27,23 @@ jobs:
         run: npm run build
 
       - name: Prepare deployment folder
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
           mkdir deploy
           cp -r .next/standalone/. deploy/
           mkdir -p deploy/.next/static
           cp -r .next/static/. deploy/.next/static/
           cp -r public deploy/public
-          echo '{"scripts": {"start": "node server.js"}}' > deploy/package.json
-          cat <<EOF > deploy/.env
-          NEXT_PUBLIC_SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-          SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
-          EOF
-
+          echo '{"scripts": {"start": "node --env-file=.env server.js"}}' > deploy/package.json
+          printf "NEXT_PUBLIC_SUPABASE_URL=%s\n" "$NEXT_PUBLIC_SUPABASE_URL" > deploy/.env
+          printf "NEXT_PUBLIC_SUPABASE_ANON_KEY=%s\n" "$NEXT_PUBLIC_SUPABASE_ANON_KEY" >> deploy/.env
+          printf "SUPABASE_SERVICE_ROLE_KEY=%s\n" "$SUPABASE_SERVICE_ROLE_KEY" >> deploy/.env
+          printf "OPENAI_API_KEY=%s\n" "$OPENAI_API_KEY" >> deploy/.env
+          
       - name: Deploy to Azure
         uses: azure/webapps-deploy@v3
         with:
